@@ -1,0 +1,18 @@
+{
+  "port": 8090,
+  "node_name": "node-01",
+  "peers": [],
+  "cluster_token": "secret-token-123",
+  "security": {
+    "blacklisted_commands": ["rm", "mkfs", "dd", "reboot", "shutdown", ":(){:|:&};:"],
+    "dangerous_args_regex": ["rm\\s+-[a-zA-Z]*r[a-zA-Z]*\\s+/"]
+  },
+  "log": {
+    "level": "debug",
+    "log_dir": "logs/server",
+    "max_size": 100,
+    "max_backups": 3,
+    "max_age": 28,
+    "compress": false
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "servers": [
+    {
+      "name": "local-node",
+      "url": "http://localhost:8090"
+    }
+  ],
+  "log": {
+    "level": "debug",
+    "log_dir": "logs/client",
+    "max_size": 100,
+    "max_backups": 3,
+    "max_age": 28,
+    "compress": false
+  }
+}
