@@ -34,7 +34,7 @@ graph TD
 
 ### 2.2 Server 模块
 - **MCP Server Core**: 基于 `go-sdk` 实现，注册 Tool `execute_command`。
-- **Security Guard (安全卫士)**: 
+- **Security Guard (安全卫士)**:
   - 负责对输入命令进行安全审计。
   - 实现基于规则和正则的拦截算法。
 - **Command Executor (执行器)**:
@@ -44,6 +44,61 @@ graph TD
   - 维护 Peer 节点列表。
   - 负责将命令分发给其他节点（充当其他节点的 Client）。
   - 聚合本地和其他节点的执行结果。
+
+### 2.3 Logger 模块
+- **Logger Core**: 基于 Uber Zap 实现的高性能日志记录器。
+- **并发安全**: 使用 `sync.Once` 保证初始化的并发安全，支持多 goroutine 同时调用。
+- **日志轮转**: 集成 lumberjack，支持日志文件自动轮转、压缩和清理。
+- **结构化日志**: 支持 JSON 格式输出，支持添加结构化字段。
+- **多级别日志**: 支持 debug、info、warn、error、fatal 五个级别。
+
+#### 2.3.1 Logger 并发安全设计
+
+**问题背景**:
+- 多个 goroutine 可能同时调用 `InitLogger`，导致全局变量赋值的竞态条件
+- 一个节点可能同时作为 client 和 server 运行，需要确保日志记录的一致性
+
+**解决方案**:
+- 使用 `sync.Once` 保护初始化逻辑，确保即使多个 goroutine 同时调用，初始化代码也只会执行一次
+- `L()` 和 `S()` 函数使用 `sync.Once` 实现懒加载，保证并发安全
+- 对于既是 client 又是 server 的场景，推荐使用同一个 logger 文件，通过 `role` 字段区分
+
+**实现细节**:
+```go
+var (
+    globalLogger *zap.Logger
+    sugarLogger  *zap.SugaredLogger
+    loggerOnce   sync.Once // 用于保证初始化的并发安全
+)
+
+func InitLogger(cfg *LogConfig, filename string) error {
+    var initErr error
+    loggerOnce.Do(func() {
+        // 初始化逻辑
+    })
+    return initErr
+}
+```
+
+**使用示例**:
+```go
+// 初始化 logger（只需初始化一次）
+cfg := &logger.LogConfig{
+    Level:      "debug",
+    LogDir:     "logs",
+    MaxSize:    100,
+    MaxBackups: 3,
+    MaxAge:     28,
+    Compress:   false,
+}
+err := logger.InitLogger(cfg, "app.log")
+
+// Client 日志，添加 role 字段区分
+logger.Info("Client started", zap.String("role", "client"))
+
+// Server 日志，添加 role 字段区分
+logger.Info("Server started", zap.String("role", "server"))
+```
 
 ## 3. 核心流程设计
 

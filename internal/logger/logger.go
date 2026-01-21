@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -35,64 +36,71 @@ func DefaultLogConfig() *LogConfig {
 var (
 	globalLogger *zap.Logger
 	sugarLogger  *zap.SugaredLogger
+	loggerOnce   sync.Once // 用于保证初始化的并发安全
 )
 
 // InitLogger 初始化全局日志记录器
+// 注意：此函数使用 sync.Once 保证并发安全，多次调用只会执行第一次初始化
 // cfg: 日志配置
-// filename: 日志文件名（如 "server.log" 或 "client.log"）
+// filename: 日志文件名（如 "app.log"）
+// 如果需要区分 client 和 server 的日志，建议使用同一个文件，通过日志字段区分
 func InitLogger(cfg *LogConfig, filename string) error {
-	if cfg == nil {
-		cfg = DefaultLogConfig()
-	}
+	var initErr error
+	loggerOnce.Do(func() {
+		if cfg == nil {
+			cfg = DefaultLogConfig()
+		}
 
-	// 确保日志目录存在
-	if err := os.MkdirAll(cfg.LogDir, 0755); err != nil {
-		return fmt.Errorf("failed to create log directory: %w", err)
-	}
+		// 确保日志目录存在
+		if err := os.MkdirAll(cfg.LogDir, 0755); err != nil {
+			initErr = fmt.Errorf("failed to create log directory: %w", err)
+			return
+		}
 
-	// 构建日志文件完整路径
-	logFilePath := filepath.Join(cfg.LogDir, filename)
+		// 构建日志文件完整路径
+		logFilePath := filepath.Join(cfg.LogDir, filename)
 
-	// 配置 lumberjack 进行日志轮转
-	fileWriter := &lumberjack.Logger{
-		Filename:   logFilePath,
-		MaxSize:    cfg.MaxSize,
-		MaxBackups: cfg.MaxBackups,
-		MaxAge:     cfg.MaxAge,
-		Compress:   cfg.Compress,
-	}
+		// 配置 lumberjack 进行日志轮转
+		fileWriter := &lumberjack.Logger{
+			Filename:   logFilePath,
+			MaxSize:    cfg.MaxSize,
+			MaxBackups: cfg.MaxBackups,
+			MaxAge:     cfg.MaxAge,
+			Compress:   cfg.Compress,
+		}
 
-	// 解析日志级别
-	level := parseLogLevel(cfg.Level)
+		// 解析日志级别
+		level := parseLogLevel(cfg.Level)
 
-	// 配置编码器（包含时间戳、日志级别、调用信息等）
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		FunctionKey:    zapcore.OmitKey,
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.SecondsDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-	}
+		// 配置编码器（包含时间戳、日志级别、调用信息等）
+		encoderConfig := zapcore.EncoderConfig{
+			TimeKey:        "time",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.CapitalLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.SecondsDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		}
 
-	// 创建核心
-	core := zapcore.NewCore(
-		zapcore.NewJSONEncoder(encoderConfig),
-		zapcore.AddSync(fileWriter),
-		level,
-	)
+		// 创建核心
+		core := zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderConfig),
+			zapcore.AddSync(fileWriter),
+			level,
+		)
 
-	// 创建全局日志记录器
-	globalLogger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(zapcore.ErrorLevel))
-	sugarLogger = globalLogger.Sugar()
+		// 创建全局日志记录器
+		globalLogger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(zapcore.ErrorLevel))
+		sugarLogger = globalLogger.Sugar()
+	})
 
-	return nil
+	return initErr
 }
 
 // parseLogLevel 解析日志级别字符串
@@ -112,20 +120,22 @@ func parseLogLevel(levelStr string) zapcore.Level {
 }
 
 // L 返回全局的 zap.Logger
+// 使用 sync.Once 保证并发安全，如果未初始化则使用默认配置自动初始化
 func L() *zap.Logger {
-	if globalLogger == nil {
+	loggerOnce.Do(func() {
 		// 如果未初始化，使用默认配置初始化
 		_ = InitLogger(nil, "default.log")
-	}
+	})
 	return globalLogger
 }
 
 // S 返回全局的 zap.SugaredLogger
+// 使用 sync.Once 保证并发安全，如果未初始化则使用默认配置自动初始化
 func S() *zap.SugaredLogger {
-	if sugarLogger == nil {
+	loggerOnce.Do(func() {
 		// 如果未初始化，使用默认配置初始化
 		_ = InitLogger(nil, "default.log")
-	}
+	})
 	return sugarLogger
 }
 
