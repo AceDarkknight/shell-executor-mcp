@@ -19,11 +19,11 @@ import (
 	"github.com/spf13/viper"
 )
 
-// RunCmd represents the run command
+// RunCmd 表示 run 命令
 var RunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Start MCP server",
-	Long:  `Start the MCP server and begin listening for requests.`,
+	Short: "启动 MCP 服务器",
+	Long:  `启动 MCP 服务器并开始监听请求。`,
 	Run: func(cmd *cobra.Command, args []string) {
 		runServer()
 	},

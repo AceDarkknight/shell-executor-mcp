@@ -25,7 +25,7 @@ type MCPClientSession struct {
 	URL     string
 }
 
-// RunCmd represents the run command
+// RunCmd 表示 run 命令
 var RunCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Start the MCP client",
