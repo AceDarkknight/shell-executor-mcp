@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 
+	"shell-executor-mcp/internal/logger"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -25,7 +27,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -77,6 +79,11 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		// 先初始化logger，避免死锁
+		logger.InitLogger(nil, "client.log")
+		logger.Infof("Using config file: %s", viper.ConfigFileUsed())
+	} else {
+		fmt.Printf("Failed to read config file: %v\n", err)
+		os.Exit(1)
 	}
 }

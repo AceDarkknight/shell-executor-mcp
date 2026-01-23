@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"path/filepath"
 
 	"shell-executor-mcp/internal/logger"
 )
@@ -15,18 +13,12 @@ func TestLogger() {
 
 	// 创建日志目录
 	if err := os.MkdirAll(logCfg.LogDir, 0755); err != nil {
-		fmt.Printf("Failed to create log directory: %v\n", err)
-		os.Exit(1)
+		logger.Fatalf("Failed to create log directory: %v", err)
 	}
-
-	// 构建日志文件路径
-	logFilePath := filepath.Join(logCfg.LogDir, "test.log")
-	fmt.Printf("Log file path: %s\n", logFilePath)
 
 	// 初始化日志
 	if err := logger.InitLogger(logCfg, "test.log"); err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+		logger.Fatalf("Failed to initialize logger: %v", err)
 	}
 
 	// 测试日志输出
@@ -38,7 +30,7 @@ func TestLogger() {
 	// 同步日志
 	logger.Sync()
 
-	fmt.Println("Logger test completed successfully!")
+	logger.Info("Logger test completed successfully!")
 }
 
 func main() {

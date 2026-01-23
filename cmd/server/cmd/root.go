@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
+	"shell-executor-mcp/internal/logger"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 // 这由 main.main()调用。只需对 rootCmd执行一次。
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Error(err.Error())
 		os.Exit(1)
 	}
 }
@@ -83,11 +83,8 @@ func initConfig() {
 
 	// 如果找到配置文件，则读取它。
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
-
-	// 如果找到配置文件，则读取它。
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		// 先初始化logger，避免死锁
+		logger.InitLogger(nil, "server.log")
+		logger.Infof("Using config file: %s", viper.ConfigFileUsed())
 	}
 }

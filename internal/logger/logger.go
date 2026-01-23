@@ -52,13 +52,17 @@ func InitLogger(cfg *LogConfig, filename string) error {
 		}
 
 		// 确保日志目录存在
-		if err := os.MkdirAll(cfg.LogDir, 0755); err != nil {
+		logDir := cfg.LogDir
+		if logDir == "" {
+			logDir = "logs"
+		}
+		if err := os.MkdirAll(logDir, 0755); err != nil {
 			initErr = fmt.Errorf("failed to create log directory: %w", err)
 			return
 		}
 
 		// 构建日志文件完整路径
-		logFilePath := filepath.Join(cfg.LogDir, filename)
+		logFilePath := filepath.Join(logDir, filename)
 
 		// 配置 lumberjack 进行日志轮转
 		fileWriter := &lumberjack.Logger{
@@ -88,12 +92,10 @@ func InitLogger(cfg *LogConfig, filename string) error {
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		}
 
-		// 创建核心
-		core := zapcore.NewCore(
-			zapcore.NewJSONEncoder(encoderConfig),
-			zapcore.AddSync(fileWriter),
-			level,
-		)
+		// 创建核心 - 使用Tee同时输出到文件和Console
+		fileCore := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig), zapcore.AddSync(fileWriter), level)
+		consoleCore := zapcore.NewCore(zapcore.NewJSONEncoder(encoderConfig), zapcore.AddSync(os.Stdout), level)
+		core := zapcore.NewTee(fileCore, consoleCore)
 
 		// 创建全局日志记录器
 		globalLogger = zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(zapcore.ErrorLevel))

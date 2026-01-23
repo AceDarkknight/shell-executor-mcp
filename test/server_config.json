@@ -7,9 +7,9 @@
     "blacklisted_commands": ["rm", "mkfs", "dd", "reboot", "shutdown", ":(){:|:&};:"],
     "dangerous_args_regex": ["rm\\s+-[a-zA-Z]*r[a-zA-Z]*\\s+/"]
   },
-  "log": {
+  "log_config": {
     "level": "debug",
-    "log_dir": "logs/server",
+    "log_dir": "logs",
     "max_size": 100,
     "max_backups": 3,
     "max_age": 28,

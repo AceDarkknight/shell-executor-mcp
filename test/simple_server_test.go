@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"shell-executor-mcp/internal/logger"
 )
 
 func main() {
-	fmt.Println("Simple server test - no logger")
-	fmt.Println("Server test completed successfully!")
+	logger.InitLogger(nil, "simple_test.log")
+	logger.Info("Simple server test - no logger")
+	logger.Info("Server test completed successfully!")
 }
