@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"os"
+	"slices"
 	"sync"
 
 	"shell-executor-mcp/internal/logger"
@@ -10,13 +11,13 @@ import (
 
 // ServerConfig 定义服务器的配置结构
 type ServerConfig struct {
-	Port         int            `json:"port"`          // 监听端口
-	NodeName     string         `json:"node_name"`     // 节点名称
-	Peers        []string       `json:"peers"`         // 集群中其他节点的地址列表
-	Security     SecurityConfig `json:"security"`      // 安全配置
-	ClusterToken string         `json:"cluster_token"` // 集群内部通信Token
-	Log          LogConfig      `json:"log"`           // 日志配置
-	mu           sync.RWMutex   // 读写锁，用于保护 Peers 的并发修改
+	Port         int              `json:"port"`          // 监听端口
+	NodeName     string           `json:"node_name"`     // 节点名称
+	Peers        []string         `json:"peers"`         // 集群中其他节点的地址列表
+	Security     SecurityConfig   `json:"security"`      // 安全配置
+	ClusterToken string           `json:"cluster_token"` // 集群内部通信Token
+	LogConfig    logger.LogConfig `json:"log_config"`    // 日志配置
+	mu           sync.RWMutex     // 读写锁，用于保护 Peers 的并发修改
 }
 
 // SecurityConfig 定义安全相关的配置
@@ -33,21 +34,6 @@ type LogConfig struct {
 	MaxBackups int    `json:"max_backups"` // 保留的旧日志文件最大数量
 	MaxAge     int    `json:"max_age"`     // 保留旧日志文件的最大天数
 	Compress   bool   `json:"compress"`    // 是否压缩旧日志文件
-}
-
-// ToLoggerConfig 将配置转换为 logger.LogConfig
-func (c *LogConfig) ToLoggerConfig() *logger.LogConfig {
-	if c == nil {
-		return logger.DefaultLogConfig()
-	}
-	return &logger.LogConfig{
-		Level:      c.Level,
-		LogDir:     c.LogDir,
-		MaxSize:    c.MaxSize,
-		MaxBackups: c.MaxBackups,
-		MaxAge:     c.MaxAge,
-		Compress:   c.Compress,
-	}
 }
 
 // LoadServerConfig 从指定路径加载服务器配置
@@ -86,10 +72,8 @@ func (c *ServerConfig) SetPeers(peers []string) {
 func (c *ServerConfig) AddPeer(peer string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	for _, p := range c.Peers {
-		if p == peer {
-			return // 已存在，不重复添加
-		}
+	if slices.Contains(c.Peers, peer) {
+		return // 已存在，不重复添加
 	}
 	c.Peers = append(c.Peers, peer)
 }
