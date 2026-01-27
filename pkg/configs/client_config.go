@@ -7,16 +7,16 @@ import (
 	"shell-executor-mcp/internal/logger"
 )
 
-// ServerConfig 定义单个服务器配置
-type ServerConfig struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
+// ClientConfig 定义客户端的配置结构
+type ClientConfig struct {
+	Servers []ServerConfig `json:"servers"` // 服务器列表
+	Log     LogConfig      `json:"log"`     // 日志配置
 }
 
-// ClientConfig 定义客户端配置
-type ClientConfig struct {
-	Servers []ServerConfig `json:"servers"`
-	Log     LogConfig      `json:"log"` // 日志配置
+// ServerConfig 定义服务器的配置结构
+type ServerConfig struct {
+	Name string `json:"name"` // 服务器名称
+	URL  string `json:"url"`  // 服务器地址
 }
 
 // LogConfig 定义日志相关的配置
@@ -29,18 +29,15 @@ type LogConfig struct {
 	Compress   bool   `json:"compress"`    // 是否压缩旧日志文件
 }
 
-// ToLoggerConfig 将配置转换为 logger.LogConfig
-func (c *LogConfig) ToLoggerConfig() *logger.LogConfig {
-	if c == nil {
-		return logger.DefaultLogConfig()
-	}
-	return &logger.LogConfig{
-		Level:      c.Level,
-		LogDir:     c.LogDir,
-		MaxSize:    c.MaxSize,
-		MaxBackups: c.MaxBackups,
-		MaxAge:     c.MaxAge,
-		Compress:   c.Compress,
+// ToLoggerConfig 转换为 logger.LogConfig
+func (lc *LogConfig) ToLoggerConfig() logger.LogConfig {
+	return logger.LogConfig{
+		Level:      lc.Level,
+		LogDir:     lc.LogDir,
+		MaxSize:    lc.MaxSize,
+		MaxBackups: lc.MaxBackups,
+		MaxAge:     lc.MaxAge,
+		Compress:   lc.Compress,
 	}
 }
 

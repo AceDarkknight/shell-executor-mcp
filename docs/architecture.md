@@ -27,10 +27,18 @@ graph TD
 ## 2. 模块划分
 
 ### 2.1 Client 模块
-- **Config Manager**: 加载服务器列表配置。
-- **Connection Manager**: 负责探测并建立与 Server 的连接（MCP Client over SSE）。
-- **Input Handler**: 处理用户在终端的输入。
-- **MCP Client**: 封装 `go-sdk` 的 Client 功能，发送 `CallTool` 请求。
+
+Client 端采用分层架构，将核心业务逻辑与 CLI 交互逻辑解耦，以便于外部程序集成。
+
+- **CLI Layer (`cmd/client`)**: 
+  - 负责用户终端交互、命令行参数解析。
+  - 使用 `pkg/mcpclient` 与集群交互。
+  - 负责结果的终端格式化显示。
+- **SDK Layer (`pkg/mcpclient`)**:
+  - **Client Core**: 封装核心逻辑，提供标准的 Go API。
+  - **Connection Manager**: 负责探测并建立与 Server 的连接，内置故障转移 (Failover) 机制。
+  - **Result Parser**: 解析 MCP Tool 的执行结果，将非结构化文本转换为结构化对象 (`Result` struct)。
+  - **MCP Client**: 封装 `go-sdk` 的 Client 功能，发送 `CallTool` 请求。
 
 ### 2.2 Server 模块
 - **MCP Server Core**: 基于 `go-sdk` 实现，注册 Tool `execute_command`。

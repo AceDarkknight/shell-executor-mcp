@@ -89,3 +89,135 @@ Server 端使用的配置文件。
 - **EXECUTION_ERROR**: Shell 命令执行失败（非 0 退出码）。
 - **CLUSTER_PARTIAL_FAILURE**: 部分节点执行失败。
 - **TIMEOUT**: 执行超时。
+
+## 5. Go Client SDK API
+
+为了方便外部 Go 程序集成，本项目提供了一个独立的客户端库 `pkg/mcpclient`。
+
+### 5.1 核心类型
+
+#### `Client`
+封装了 MCP 连接管理、故障转移和命令执行逻辑。
+
+```go
+type Client struct {
+    // 内部字段包含配置、连接状态等
+}
+```
+
+#### `Result`
+表示命令在集群上的执行结果。
+
+```go
+type Result struct {
+    Summary string        // 简要汇总信息
+    Groups  []ResultGroup // 分组后的详细结果
+}
+
+type ResultGroup struct {
+    Count  int      // 该组包含的节点数量
+    Status string   // 执行状态 (success/failed)
+    Output string   // 标准输出内容
+    Error  string   // 错误信息
+    Nodes  []string // 属于该组的节点名称列表
+}
+```
+
+### 5.2 初始化
+
+#### `NewClient`
+创建一个新的客户端实例。
+
+```go
+func NewClient(cfg *configs.ClientConfig, opts ...Option) (*Client, error)
+```
+- **cfg**: 客户端配置对象，包含服务器列表等信息。
+- **opts**: 可选配置项（见下文）。
+
+#### `LoadConfig`
+从指定路径加载配置文件（通常由 `pkg/configs` 包提供）。
+
+```go
+// 位于 pkg/configs 包中
+func LoadClientConfig(path string) (*configs.ClientConfig, error)
+```
+
+### 5.3 配置选项 (Options)
+
+使用函数式选项模式进行配置。
+
+- `WithServerURL(url string) Option`: 覆盖配置中的首选服务器 URL。
+- `WithLogger(l *zap.Logger) Option`: 使用自定义的 Logger 实例。
+- `WithTimeout(d time.Duration) Option`: 设置命令执行的超时时间。
+
+### 5.4 客户端方法
+
+#### `Connect`
+连接到 MCP 服务器集群。会自动尝试配置列表中的可用服务器。
+
+```go
+func (c *Client) Connect(ctx context.Context) error
+```
+
+#### `Close`
+关闭连接并释放资源。
+
+```go
+func (c *Client) Close() error
+```
+
+#### `ExecuteCommand`
+在集群上执行 Shell 命令并返回结构化结果。
+
+```go
+func (c *Client) ExecuteCommand(ctx context.Context, cmd string) (*Result, error)
+```
+
+### 5.5 使用示例
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "time"
+
+    "shell-executor-mcp/pkg/configs"
+    "shell-executor-mcp/pkg/mcpclient"
+)
+
+func main() {
+    // 1. 加载配置
+    cfg, err := configs.LoadClientConfig("client_config.json")
+    if err != nil {
+        log.Fatalf("Failed to load config: %v", err)
+    }
+
+    // 2. 创建客户端
+    client, err := mcpclient.NewClient(cfg, mcpclient.WithTimeout(10*time.Second))
+    if err != nil {
+        log.Fatalf("Failed to create client: %v", err)
+    }
+    defer client.Close()
+
+    // 3. 连接服务器
+    ctx := context.Background()
+    if err := client.Connect(ctx); err != nil {
+        log.Fatalf("Failed to connect: %v", err)
+    }
+
+    // 4. 执行命令
+    result, err := client.ExecuteCommand(ctx, "uptime")
+    if err != nil {
+        log.Fatalf("Command execution failed: %v", err)
+    }
+
+    // 5. 处理结果
+    fmt.Println("Summary:", result.Summary)
+    for _, group := range result.Groups {
+        fmt.Printf("Nodes: %v, Output: %s\n", group.Nodes, group.Output)
+    }
+}
+```
