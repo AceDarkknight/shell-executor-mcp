@@ -100,8 +100,17 @@ func loadConfigFromViper() (*configs.ClientConfig, error) {
 
 // createAndConnectClient 创建并连接客户端
 func createAndConnectClient(cfg *configs.ClientConfig) (*mcpclient.Client, error) {
+	// 准备可选参数
+	var opts []mcpclient.Option
+
+	// 如果配置中包含 token，添加到请求头
+	if cfg.Token != "" {
+		logger.Infof("使用 Token 认证")
+		opts = append(opts, mcpclient.WithHeader("X-Cluster-Token", cfg.Token))
+	}
+
 	// 创建客户端
-	client, err := mcpclient.NewClient(cfg)
+	client, err := mcpclient.NewClient(cfg, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +156,7 @@ func runCLI(client *mcpclient.Client) {
 			continue
 		}
 
-		// 发送命令到 Server
+		// 客户端安全检查：在发送命令到 Server 前进行拦截
 		logger.Infof("准备执行命令: %s", cmd)
 		result, err := client.ExecuteCommand(ctx, cmd)
 

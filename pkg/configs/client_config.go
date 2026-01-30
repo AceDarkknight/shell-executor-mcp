@@ -10,6 +10,7 @@ import (
 // ClientConfig 定义客户端的配置结构
 type ClientConfig struct {
 	Servers []ServerConfig `json:"servers"` // 服务器列表
+	Token   string         `json:"token"`   // 连接 Token
 	Log     LogConfig      `json:"log"`     // 日志配置
 }
 
