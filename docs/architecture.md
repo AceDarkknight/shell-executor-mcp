@@ -260,9 +260,70 @@ sequenceDiagram
 
 4. **响应**: 将 Map 转换为 List 返回给 Client。
 
-## 5. 数据结构
+## 5. 部署与运维 (Deployment & Operations)
 
-### 5.1 MCP Tool Schema
+### 5.1 Systemd 服务集成
+
+为了在生产环境中稳定运行 Shell Executor MCP Server，项目提供了 Systemd 服务集成方案。
+
+#### 5.1.1 启动脚本
+
+项目包含一个 `bin/server_startup.sh` 脚本，用于启动服务器。该脚本：
+
+- **适配多系统**: 支持 CentOS, Ubuntu, RedHat 等主流 Linux 发行版。
+- **自动化配置**:
+  - 自动从 `/etc/hostname` 获取主机名作为 `node_name`。
+  - 动态生成随机的 `cluster_token`。
+  - 自动定位项目根目录和二进制文件。
+  - **自动配置**: 如果项目根目录不存在 `server.json`，会自动从 `bin/server-template.json` 模板拷贝。
+  - **自动填充**: 自动将 `node_name` 和 `cluster_token` 写入配置文件，替换模板中的占位符。
+- **Systemd 兼容**: 使用 `exec` 启动进程，确保 Systemd 能够正确管理进程生命周期（信号传递、重启等）。
+
+#### 5.1.2 Systemd Unit 文件
+
+建议的 Systemd Unit 文件 (`shell-executor-mcp.service`) 内容：
+
+```ini
+[Unit]
+Description=Shell Executor MCP Server
+Documentation=https://github.com/your-repo/shell-executor-mcp
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/shell-executor-mcp
+ExecStart=/opt/shell-executor-mcp/bin/server_startup.sh
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### 5.1.3 部署步骤
+
+1. **部署项目**: 将项目代码部署到目标服务器（例如 `/opt/shell-executor-mcp`）。
+2. **准备二进制**: 确保 `server` 可执行文件已编译并位于项目根目录。
+3. **准备配置**: 确保 `bin/server-template.json` 配置模板存在于 `bin/` 目录（首次启动时会自动拷贝到根目录）。
+4. **赋予执行权限**: `chmod +x bin/server_startup.sh`。
+5. **安装服务**: 复制 Unit 文件到 Systemd目录：`cp bin/shell-executor-mcp.service /etc/systemd/system/`。
+6. **修改配置**: 编辑 `/etc/systemd/system/shell-executor-mcp.service`，根据实际环境修改 `User`, `WorkingDirectory`, `ExecStart` 等参数。
+7. **重载 Systemd**: `systemctl daemon-reload`。
+8. **启动服务**: `systemctl start shell-executor-mcp`。
+9. **设置开机自启**: `systemctl enable shell-executor-mcp`。
+10. **查看状态**: `systemctl status shell-executor-mcp`。
+11. **查看日志**: `journalctl -u shell-executor-mcp -f`。
+
+**注意**:
+- `bin/` 目录已包含 `server-template.json` 配置模板和 `shell-executor-mcp.service` 服务文件，用户可以直接使用。
+- 首次启动时，`server_startup.sh` 脚本会自动检测项目根目录是否存在 `server.json`，如果不存在则从 `bin/server-template.json` 模板拷贝。
+- 脚本会自动将获取的 `node_name` 和生成的 `cluster_token` 写入配置文件，替换模板中的占位符。
+- 用户可以在根目录的 `server.json` 中修改配置，模板文件不会被覆盖。
+
+## 6. 数据结构
+
+### 6.1 MCP Tool Schema
 ```json
 {
   "name": "execute_command",

@@ -1,0 +1,15 @@
+[Unit]
+Description=Shell Executor MCP Server
+Documentation=https://github.com/your-repo/shell-executor-mcp
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/shell-executor-mcp
+ExecStart=/opt/shell-executor-mcp/bin/server_startup.sh
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
