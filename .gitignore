@@ -32,5 +32,5 @@ go.work.sum
 # .vscode/
 logs/
 logs/
-bin/k8s-mcp-server
-bin/k8s-mcp-client
+
+bin/shell-executor-mcp-server

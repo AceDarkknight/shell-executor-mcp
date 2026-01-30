@@ -277,7 +277,12 @@ sequenceDiagram
   - 自动定位项目根目录和二进制文件。
   - **自动配置**: 如果项目根目录不存在 `server.json`，会自动从 `bin/server-template.json` 模板拷贝。
   - **自动填充**: 自动将 `node_name` 和 `cluster_token` 写入配置文件，替换模板中的占位符。
-- **Systemd 兼容**: 使用 `exec` 启动进程，确保 Systemd 能够正确管理进程生命周期（信号传递、重启等）。
+- **进程管理**:
+  - **自动停止旧进程**: 启动新进程前，会自动检查并停止正在运行的同名服务器进程（基于 PID 文件）。
+  - **后台运行**: 使用 `nohup` 在后台启动服务器，脚本执行完成后可以正常退出。
+  - **PID 管理**: 将启动后的进程 PID 记录到 `server.pid` 文件中，便于后续精准停止。
+  - **日志管理**: 自动将日志输出重定向到 `server.log` 文件。
+- **Systemd 兼容**: 脚本支持手动直接运行和通过 Systemd 管理。如果使用 systemd，systemd 会自动处理进程生命周期和日志管理。
 
 #### 5.1.2 Systemd Unit 文件
 
@@ -303,11 +308,27 @@ WantedBy=multi-user.target
 
 #### 5.1.3 部署步骤
 
+##### 方式一：手动直接运行（推荐用于测试、开发环境）
+
 1. **部署项目**: 将项目代码部署到目标服务器（例如 `/opt/shell-executor-mcp`）。
 2. **准备二进制**: 确保 `server` 可执行文件已编译并位于项目根目录。
 3. **准备配置**: 确保 `bin/server-template.json` 配置模板存在于 `bin/` 目录（首次启动时会自动拷贝到根目录）。
 4. **赋予执行权限**: `chmod +x bin/server_startup.sh`。
-5. **安装服务**: 复制 Unit 文件到 Systemd目录：`cp bin/shell-executor-mcp.service /etc/systemd/system/`。
+5. **启动服务器**: `./bin/server_startup.sh`。
+
+**手动运行常用操作：**
+- 查看日志：`tail -f server.log`
+- 停止服务器：`kill $(cat server.pid)`
+- 重启服务器：再次运行 `./bin/server_startup.sh`（会自动停止旧进程）
+- 查看进程状态：`ps -p $(cat server.pid)`
+
+##### 方式二：通过 Systemd 运行（推荐用于生产环境）
+
+1. **部署项目**: 将项目代码部署到目标服务器（例如 `/opt/shell-executor-mcp`）。
+2. **准备二进制**: 确保 `server` 可执行文件已编译并位于项目根目录。
+3. **准备配置**: 确保 `bin/server-template.json` 配置模板存在于 `bin/` 目录（首次启动时会自动拷贝到根目录）。
+4. **赋予执行权限**: `chmod +x bin/server_startup.sh`。
+5. **安装服务**: 复制 Unit 文件到 Systemd 目录：`cp bin/shell-executor-mcp.service /etc/systemd/system/`。
 6. **修改配置**: 编辑 `/etc/systemd/system/shell-executor-mcp.service`，根据实际环境修改 `User`, `WorkingDirectory`, `ExecStart` 等参数。
 7. **重载 Systemd**: `systemctl daemon-reload`。
 8. **启动服务**: `systemctl start shell-executor-mcp`。
@@ -320,6 +341,9 @@ WantedBy=multi-user.target
 - 首次启动时，`server_startup.sh` 脚本会自动检测项目根目录是否存在 `server.json`，如果不存在则从 `bin/server-template.json` 模板拷贝。
 - 脚本会自动将获取的 `node_name` 和生成的 `cluster_token` 写入配置文件，替换模板中的占位符。
 - 用户可以在根目录的 `server.json` 中修改配置，模板文件不会被覆盖。
+- **手动运行 vs Systemd 运行**：
+  - 手动运行时，脚本负责进程管理（停止旧进程、后台运行、PID 管理），日志输出到 `server.log`。
+  - Systemd 运行时，systemd 负责进程管理（自动重启、信号处理），日志输出到 systemd journal（通过 `journalctl` 查看）。
 
 ## 6. 数据结构
 
