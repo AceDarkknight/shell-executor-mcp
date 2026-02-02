@@ -1,7 +1,7 @@
 package main
 
 import (
-	"shell-executor-mcp/cmd/server/cmd"
+	"github.com/AceDarkknight/shell-executor-mcp/cmd/server/cmd"
 )
 
 func main() {

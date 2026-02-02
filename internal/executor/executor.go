@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // Executor 负责执行本地 Shell 命令

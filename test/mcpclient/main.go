@@ -6,9 +6,11 @@ import (
 	"log"
 	"time"
 
-	"shell-executor-mcp/internal/logger"
-	"shell-executor-mcp/pkg/configs"
-	"shell-executor-mcp/pkg/mcpclient"
+	"github.com/AceDarkknight/shell-executor-mcp/pkg/mcpclient"
+
+	"github.com/AceDarkknight/shell-executor-mcp/pkg/configs"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // 本示例演示如何使用 mcpclient 包

@@ -6,7 +6,7 @@ import (
 	"slices"
 	"sync"
 
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // ServerConfig 定义服务器的配置结构

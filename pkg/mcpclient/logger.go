@@ -1,7 +1,7 @@
 package mcpclient
 
 import (
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // Logger 定义日志记录器接口

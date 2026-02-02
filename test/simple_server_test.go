@@ -1,7 +1,7 @@
 package main
 
 import (
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 func main() {

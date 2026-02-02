@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"shell-executor-mcp/pkg/configs"
+	"github.com/AceDarkknight/shell-executor-mcp/pkg/configs"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

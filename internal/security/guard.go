@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // Guard 负责命令的安全审计

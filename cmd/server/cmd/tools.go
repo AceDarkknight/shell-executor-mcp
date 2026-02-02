@@ -4,11 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"shell-executor-mcp/internal/config"
-	"shell-executor-mcp/internal/dispatch"
-	"shell-executor-mcp/internal/executor"
-	"shell-executor-mcp/internal/logger"
-	"shell-executor-mcp/internal/security"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/security"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/executor"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/dispatch"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/config"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )

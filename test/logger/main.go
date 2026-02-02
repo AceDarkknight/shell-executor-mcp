@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // TestLogger 测试日志功能

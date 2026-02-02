@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
 // ClientConfig 定义客户端的配置结构

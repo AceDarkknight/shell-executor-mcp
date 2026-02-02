@@ -6,9 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"shell-executor-mcp/internal/logger"
-	"shell-executor-mcp/pkg/configs"
-	"shell-executor-mcp/pkg/mcpclient"
+	"github.com/AceDarkknight/shell-executor-mcp/pkg/mcpclient"
+
+	"github.com/AceDarkknight/shell-executor-mcp/pkg/configs"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

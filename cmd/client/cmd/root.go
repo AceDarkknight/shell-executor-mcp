@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

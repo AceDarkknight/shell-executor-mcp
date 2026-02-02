@@ -11,8 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"shell-executor-mcp/internal/executor"
-	"shell-executor-mcp/internal/logger"
+	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
+
+	"github.com/AceDarkknight/shell-executor-mcp/internal/executor"
 )
 
 // Dispatcher 负责将命令分发给集群节点并聚合结果
