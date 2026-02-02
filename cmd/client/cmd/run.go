@@ -3,6 +3,7 @@ package cmd
 import (
 	"bufio"
 	"context"
+	"io"
 	"os"
 	"strings"
 
@@ -140,7 +141,11 @@ func runCLI(client *mcpclient.Client) {
 		logger.Info("> ")
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			logger.Errorf("读取用户输入失败: %v", err)
+			if err == io.EOF {
+				logger.Warnf("读取用户输入结束 (EOF)")
+			} else {
+				logger.Errorf("读取用户输入失败: %v", err)
+			}
 			break
 		}
 
