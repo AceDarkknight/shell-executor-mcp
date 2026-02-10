@@ -34,3 +34,4 @@ logs/
 logs/
 
 bin/shell-executor-mcp-server
+test/debug_client_config.json
