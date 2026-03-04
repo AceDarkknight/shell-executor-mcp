@@ -14,7 +14,7 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "k8s-mcp-client",
+	Use:   "Shell Executor MCP Client",
 	Short: "Shell Executor MCP Client",
 	Long:  `Shell Executor MCP Client is a tool that connects to the Shell Executor MCP Server and allows executing shell commands on a cluster.`,
 	Run: func(cmd *cobra.Command, args []string) {

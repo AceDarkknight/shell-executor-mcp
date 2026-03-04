@@ -7,8 +7,6 @@
 - `server_startup.sh` - Shell Executor MCP Server 的启动脚本，用于通过 Systemd 管理服务。
 - `server-template.json` - 服务器配置文件模板，首次启动时会自动拷贝到项目根目录并填充配置。
 - `shell-executor-mcp.service` - Systemd 服务单元文件模板，用于配置系统服务。
-- `k8s-mcp-server` / `server` - 服务器端可执行文件。
-- `k8s-mcp-client` / `client` - 客户端可执行文件。
 
 ## 使用 server_startup.sh
 
