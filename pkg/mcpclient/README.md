@@ -10,6 +10,7 @@
 - 支持函数式选项模式（Functional Options Pattern）进行个性化配置
 - 支持自定义日志记录器
 - 支持自定义 HTTP 客户端和请求头
+- 支持 HTTPS 及自签证书（`WithInsecureSkipVerify()`）
 - 自动解析和格式化命令执行结果
 
 ## 安装
@@ -126,6 +127,31 @@ client, err := mcpclient.NewClient(cfg,
 )
 ```
 
+### 连接 HTTPS 服务端（自签证书）
+
+当服务端启用 TLS 且使用自签证书时，客户端需跳过证书验证：
+
+```go
+cfg := &configs.ClientConfig{
+    Servers: []configs.ServerConfig{
+        {
+            Name: "server-01",
+            URL:  "https://172.25.1.75:8018/mcp",
+        },
+    },
+}
+
+client, err := mcpclient.NewClient(cfg,
+    mcpclient.WithHeader("X-Cluster-Token", "your-token"),
+    mcpclient.WithInsecureSkipVerify(),  // 跳过自签证书验证
+)
+```
+
+> **背景**：如果客户端与服务端之间存在跨子网网络设备（防火墙/IPS/WAF），
+> 部分设备会对明文 HTTP body 进行 DPI（深度包检测），匹配到命令注入特征
+> （如 `cat /etc/passwd`、`;`、`&&` 等）后静默丢弃连接导致超时。
+> 服务端启用 TLS 后流量加密，DPI 无法检查内容，可彻底规避此问题。
+
 ### 使用自定义日志记录器
 
 ```go
@@ -211,6 +237,7 @@ func NewClient(cfg *configs.ClientConfig, opts ...Option) (*Client, error)
 - `WithHeaders(headers map[string]string) Option` - 设置请求头
 - `WithHeader(key, value string) Option` - 添加单个请求头
 - `WithServerURL(url string) Option` - 覆盖完整 MCP endpoint URL
+- `WithInsecureSkipVerify() Option` - 跳过 TLS 证书验证（用于自签证书场景）
 
 ### 配置加载
 

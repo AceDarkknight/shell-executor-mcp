@@ -89,6 +89,11 @@ cd ../..
       "rm\\s+-[a-zA-Z]*r[a-zA-Z]*\\s+/"
     ]
   },
+  "tls": {
+    "enabled": true,
+    "cert_file": "",
+    "key_file": ""
+  },
   "log": {
     "level": "info",
     "log_dir": ".",
@@ -108,6 +113,26 @@ cd ../..
 - `max_age`: 保留旧日志文件的最大天数，默认为 28 天
 - `compress`: 是否压缩旧日志文件，默认为 `false`
 
+**TLS 配置说明**：
+- `enabled`: 是否启用 HTTPS，默认为 `true`
+- `cert_file`: TLS 证书文件路径，为空则自动生成自签证书
+- `key_file`: TLS 私钥文件路径，为空则自动生成自签证书
+
+TLS 也可通过环境变量或命令行参数启用：
+
+```bash
+# 环境变量（注意 MCP_ 前缀）
+export MCP_TLS_ENABLED=true
+
+# 命令行参数
+./shell-executor-mcp-server --tls
+```
+
+> **重要提示**：如果客户端与服务端之间存在跨子网网络设备（防火墙/IPS/WAF），**强烈建议启用 TLS**。
+> 部分企业网络设备会对明文 HTTP body 进行深度包检测（DPI），匹配到命令注入特征
+> （如 `cat /etc/passwd`、`;`、`&&`、`/bin/` 等模式）后会静默丢弃连接，
+> 导致请求超时。启用 TLS 后流量加密，DPI 无法检查请求内容，可彻底解决此问题。
+
 #### 客户端配置 (`client_config.json`)
 
 ```json
@@ -115,11 +140,11 @@ cd ../..
   "servers": [
     {
       "name": "primary-01",
-      "url": "http://localhost:8080/mcp"
+      "url": "https://localhost:8080/mcp"
     },
     {
       "name": "backup-02",
-      "url": "http://localhost:8081/mcp"
+      "url": "https://localhost:8081/mcp"
     }
   ],
   "log": {
@@ -132,6 +157,9 @@ cd ../..
   }
 }
 ```
+
+> 服务端启用 TLS 后，客户端 URL 需从 `http://` 改为 `https://`。
+> 使用自签证书时，客户端需通过 `WithInsecureSkipVerify()` 跳过证书验证。
 
 **日志配置说明**：
 - `level`: 日志级别，可选值为 `debug`, `info`, `warn`, `error`，默认为 `info`
@@ -221,7 +249,7 @@ bash scripts/test_cluster.sh
 
 ### 通信协议
 
-- **Client → Server**：MCP Streamable HTTP (`/mcp`)
+- **Client → Server**：MCP Streamable HTTP (`/mcp`)，支持 TLS 加密
 - **Server → Server**：Internal HTTP JSON API
 
 ### 核心流程

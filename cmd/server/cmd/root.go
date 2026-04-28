@@ -45,6 +45,7 @@ func init() {
 	rootCmd.Flags().IntP("port", "p", 8080, "Server listening port")
 	rootCmd.Flags().String("cert", "", "TLS certificate file path")
 	rootCmd.Flags().String("key", "", "TLS key file path")
+	rootCmd.Flags().Bool("tls", false, "Enable TLS/HTTPS")
 	rootCmd.Flags().Bool("insecure", false, "Use insecure connection (default false)")
 	rootCmd.Flags().String("token", "", "Security token")
 	rootCmd.Flags().String("log-dir", "", "Log directory")
@@ -54,8 +55,9 @@ func init() {
 	// 将标志绑定到 viper
 	// 环境变量前缀为 MCP_
 	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
-	viper.BindPFlag("cert", rootCmd.Flags().Lookup("cert"))
-	viper.BindPFlag("key", rootCmd.Flags().Lookup("key"))
+	viper.BindPFlag("tls_cert", rootCmd.Flags().Lookup("cert"))
+	viper.BindPFlag("tls_key", rootCmd.Flags().Lookup("key"))
+	viper.BindPFlag("tls_enabled", rootCmd.Flags().Lookup("tls"))
 	viper.BindPFlag("insecure", rootCmd.Flags().Lookup("insecure"))
 	viper.BindPFlag("token", rootCmd.Flags().Lookup("token"))
 	viper.BindPFlag("log_dir", rootCmd.Flags().Lookup("log-dir"))

@@ -9,9 +9,10 @@ import (
 
 // ClientConfig 定义客户端的配置结构
 type ClientConfig struct {
-	Servers []ServerConfig `json:"servers"` // 服务器列表
-	Token   string         `json:"token"`   // 连接 Token
-	Log     LogConfig      `json:"log"`     // 日志配置
+	Servers            []ServerConfig `json:"servers"`              // 服务器列表
+	Token              string         `json:"token"`                // 连接 Token
+	InsecureSkipVerify bool           `json:"insecure_skip_verify"` // 跳过 TLS 证书验证（用于自签证书）
+	Log                LogConfig      `json:"log"`                  // 日志配置
 }
 
 // ServerConfig 定义服务器的配置结构

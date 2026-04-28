@@ -1,8 +1,17 @@
 package cmd
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -110,12 +119,12 @@ func runServer() {
 
 	// 5. 创建 HTTP Handler (Streamable HTTP)
 	// 使用 StreamableHTTPHandler 提供 MCP Streamable HTTP endpoint
-	logger.Debugf("创建 StreamableHTTPHandler，session_timeout=10m, stateless=false")
+	logger.Debugf("创建 StreamableHTTPHandler，stateless=true, jsonResponse=true")
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return mcpServer
 	}, &mcp.StreamableHTTPOptions{
-		SessionTimeout: 10 * time.Minute,
-		Stateless:      false,
+		Stateless:    true,
+		JSONResponse: true,
 	})
 	logger.Infof("HTTP Handler 创建成功")
 
@@ -129,8 +138,16 @@ func runServer() {
 	logger.Debugf("注册 MCP handler 到 /mcp")
 
 	// 包装内部 API Handler 以确保它们可以被访问
-	mux.HandleFunc("/internal/exec", internalExecHandler(guard, executor))
+	mux.HandleFunc("/internal/exec", internalExecHandler(guard, executor, cfg.ClusterToken))
 	logger.Debugf("注册内部 API: /internal/exec")
+
+	// 健康检查端点
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+	logger.Debugf("注册健康检查: /health")
+
 	mux.HandleFunc("/internal/join", internalJoinHandler(cfg, cfgFile))
 	logger.Debugf("注册内部 API: /internal/join")
 	mux.HandleFunc("/internal/sync", internalSyncHandler(cfg, cfgFile))
@@ -139,13 +156,35 @@ func runServer() {
 	// 7. 启动 HTTP Server
 	addr := ":" + strconv.Itoa(cfg.Port)
 	logger.Infof("========================================")
-	logger.Infof("Server listening on %s", addr)
-	logger.Infof("MCP endpoint: http://localhost%s/mcp", addr)
-	logger.Infof("Internal API endpoints: http://localhost%s/internal/...", addr)
+	if cfg.TLS.Enabled {
+		logger.Infof("Server listening on %s (HTTPS/TLS)", addr)
+		logger.Infof("MCP endpoint: https://localhost%s/mcp", addr)
+	} else {
+		logger.Infof("Server listening on %s", addr)
+		logger.Infof("MCP endpoint: http://localhost%s/mcp", addr)
+	}
+	logger.Infof("Internal API endpoints: /internal/...")
 	logger.Infof("========================================")
 	logger.Infof("服务器启动完成，等待请求...")
-	if err := http.ListenAndServe(addr, mux); err != nil {
-		logger.Fatalf("Server failed: %v", err)
+
+	if cfg.TLS.Enabled {
+		tlsConfig, err := buildTLSConfig(cfg)
+		if err != nil {
+			logger.Fatalf("Failed to build TLS config: %v", err)
+		}
+		server := &http.Server{
+			Addr:      addr,
+			Handler:   mux,
+			TLSConfig: tlsConfig,
+		}
+		// 如果使用自动生成的证书，TLSConfig 已包含证书，传空字符串
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			logger.Fatalf("HTTPS Server failed: %v", err)
+		}
+	} else {
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			logger.Fatalf("Server failed: %v", err)
+		}
 	}
 }
 
@@ -187,11 +226,18 @@ func loadConfigFromViper() (*config.ServerConfig, error) {
 	peers := viper.GetStringSlice("peers")
 	cfg.Peers = peers
 
+	// TLS 配置
+	cfg.TLS = config.TLSConfig{
+		Enabled:  viper.GetBool("tls_enabled"),
+		CertFile: viper.GetString("tls_cert"),
+		KeyFile:  viper.GetString("tls_key"),
+	}
+
 	return cfg, nil
 }
 
 // internalExecHandler 处理内部执行请求 (Server -> Server)
-func internalExecHandler(guard *security.Guard, executor *executor.Executor) http.HandlerFunc {
+func internalExecHandler(guard *security.Guard, executor *executor.Executor, clusterToken string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		logger.Debugf("收到 /internal/exec 请求，方法: %s, 远程地址: %s", r.Method, r.RemoteAddr)
 
@@ -202,11 +248,15 @@ func internalExecHandler(guard *security.Guard, executor *executor.Executor) htt
 		}
 
 		// Token 验证
-		// 注意：这里需要从全局或上下文获取 token，简化起见暂时跳过严格验证
-		// token := r.Header.Get("X-Cluster-Token")
-		// if token != expectedToken { ... }
-		token := r.Header.Get("X-Cluster-Token")
-		logger.Debugf("请求中的 Cluster Token: %s", token)
+		if clusterToken != "" {
+			token := r.Header.Get("X-Cluster-Token")
+			if token != clusterToken {
+				logger.Warnf("Cluster Token 校验失败, remote=%s, token=%s", r.RemoteAddr, token)
+				http.Error(w, "Unauthorized: invalid cluster token", http.StatusUnauthorized)
+				return
+			}
+			logger.Debugf("Cluster Token 校验通过")
+		}
 
 		var req dispatch.DispatchRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -326,4 +376,69 @@ func broadcastSync(cfg *config.ServerConfig, configPath string) {
 	// 这里应该使用 HTTP Client 发送 POST /internal/sync
 	// 简化实现，略
 	logger.Debugf("广播同步完成（当前为简化实现）")
+}
+
+// buildTLSConfig 构建 TLS 配置
+func buildTLSConfig(cfg *config.ServerConfig) (*tls.Config, error) {
+	if cfg.TLS.CertFile != "" && cfg.TLS.KeyFile != "" {
+		// 使用用户提供的证书
+		cert, err := tls.LoadX509KeyPair(cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load cert/key: %v", err)
+		}
+		logger.Infof("使用指定证书: cert=%s, key=%s", cfg.TLS.CertFile, cfg.TLS.KeyFile)
+		return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+	}
+
+	// 自动生成自签证书
+	logger.Infof("未指定证书文件，自动生成自签证书...")
+	cert, err := generateSelfSignedCert()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate self-signed cert: %v", err)
+	}
+	logger.Infof("自签证书生成成功")
+	return &tls.Config{Certificates: []tls.Certificate{cert}}, nil
+}
+
+// generateSelfSignedCert 生成内存中的自签名 TLS 证书
+func generateSelfSignedCert() (tls.Certificate, error) {
+	// 生成 ECDSA P-256 私钥
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	// 创建证书模板
+	serialNumber, _ := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		Subject: pkix.Name{
+			Organization: []string{"Shell Executor MCP"},
+			CommonName:   "shell-executor-mcp",
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(10 * 365 * 24 * time.Hour), // 10年
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+		// 添加 SAN，支持 IP 和 localhost 访问
+		IPAddresses: []net.IP{net.ParseIP("0.0.0.0"), net.ParseIP("127.0.0.1")},
+		DNSNames:    []string{"localhost", "*"},
+	}
+
+	// 自签名
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+
+	// 编码为 PEM
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDER})
+	keyDER, err := x509.MarshalECPrivateKey(privateKey)
+	if err != nil {
+		return tls.Certificate{}, err
+	}
+	keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+
+	return tls.X509KeyPair(certPEM, keyPEM)
 }

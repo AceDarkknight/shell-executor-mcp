@@ -17,7 +17,15 @@ type ServerConfig struct {
 	Security     SecurityConfig   `json:"security"`      // 安全配置
 	ClusterToken string           `json:"cluster_token"` // 集群内部通信Token
 	LogConfig    logger.LogConfig `json:"log_config"`    // 日志配置
+	TLS          TLSConfig        `json:"tls"`           // TLS 配置
 	mu           sync.RWMutex     // 读写锁，用于保护 Peers 的并发修改
+}
+
+// TLSConfig 定义 TLS 相关的配置
+type TLSConfig struct {
+	Enabled  bool   `json:"enabled"`   // 是否启用 TLS
+	CertFile string `json:"cert_file"` // 证书文件路径（为空则自动生成自签证书）
+	KeyFile  string `json:"key_file"`  // 私钥文件路径（为空则自动生成自签证书）
 }
 
 // SecurityConfig 定义安全相关的配置

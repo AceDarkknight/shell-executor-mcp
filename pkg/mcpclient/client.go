@@ -90,6 +90,11 @@ func NewClient(cfg *configs.ClientConfig, opts ...Option) (*Client, error) {
 		opt(client)
 	}
 
+	// 根据配置自动应用 InsecureSkipVerify
+	if cfg.InsecureSkipVerify {
+		WithInsecureSkipVerify()(client)
+	}
+
 	// 如果没有设置超时，使用默认值
 	if client.httpClient.Timeout == 0 {
 		client.httpClient.Timeout = client.timeout
@@ -395,24 +400,25 @@ func (c *Client) transportHTTPClient() *http.Client {
 		clonedClient.Timeout = c.timeout
 	}
 
-	if len(c.headers) == 0 {
-		return &clonedClient
-	}
-
+	// 构建 Transport 链：headerRoundTripper(可选) -> baseTransport
 	baseTransport := clonedClient.Transport
 	if baseTransport == nil {
 		baseTransport = http.DefaultTransport
 	}
 
-	headers := make(map[string]string, len(c.headers))
-	for key, value := range c.headers {
-		headers[key] = value
+	// 如果有自定义 headers，包一层 headerRoundTripper
+	if len(c.headers) > 0 {
+		headers := make(map[string]string, len(c.headers))
+		for key, value := range c.headers {
+			headers[key] = value
+		}
+		baseTransport = &headerRoundTripper{
+			base:    baseTransport,
+			headers: headers,
+		}
 	}
 
-	clonedClient.Transport = &headerRoundTripper{
-		base:    baseTransport,
-		headers: headers,
-	}
+	clonedClient.Transport = baseTransport
 
 	return &clonedClient
 }

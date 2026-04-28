@@ -1,6 +1,7 @@
 package mcpclient
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 )
@@ -50,5 +51,17 @@ func WithHeader(key, value string) Option {
 func WithServerURL(url string) Option {
 	return func(c *Client) {
 		c.serverURL = url
+	}
+}
+
+// WithInsecureSkipVerify 跳过 TLS 证书验证（用于自签证书）
+func WithInsecureSkipVerify() Option {
+	return func(c *Client) {
+		if c.httpClient == nil {
+			c.httpClient = &http.Client{}
+		}
+		c.httpClient.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
 	}
 }

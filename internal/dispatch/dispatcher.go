@@ -29,7 +29,7 @@ func NewDispatcher(peers []string, token string) *Dispatcher {
 		peers: peers,
 		token: token,
 		httpClient: &http.Client{
-			Timeout: 5 * time.Second, // 默认5秒超时
+			Timeout: 30 * time.Second, // 默认5秒超时
 		},
 	}
 }
