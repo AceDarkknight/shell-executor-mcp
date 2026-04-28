@@ -1,7 +1,7 @@
 # API 接口文档：Shell Executor MCP
 
 ## 1. 概述
-Server 遵循 MCP (Model Context Protocol) 规范，通过 HTTP SSE (Server-Sent Events) 暴露服务。主要的交互方式是通过 MCP 的 `CallTool` 请求。
+Server 遵循 MCP (Model Context Protocol) 规范，通过 MCP Streamable HTTP 暴露服务。客户端必须连接完整的 MCP endpoint URL（例如 `http://host:port/mcp`），并通过 MCP 的 `CallTool` 请求进行交互。
 
 ## 2. MCP Tools
 
@@ -45,18 +45,18 @@ Server 遵循 MCP (Model Context Protocol) 规范，通过 HTTP SSE (Server-Sent
 ## 3. 配置文件
 
 ### 3.1 `client_config.json`
-Client 端使用的配置文件。Client 会按顺序尝试连接服务器列表，实现简单的故障转移。
+Client 端使用的配置文件。`url` 字段表示完整的 MCP endpoint URL，必须以 `/mcp` 结尾。Client 会按顺序尝试连接服务器列表，实现简单的故障转移。
 
 ```json
 {
   "servers": [
     {
       "name": "primary-01",
-      "url": "http://192.168.1.10:8080/sse"
+      "url": "http://192.168.1.10:8080/mcp"
     },
     {
       "name": "backup-02",
-      "url": "http://192.168.1.11:8080/sse"
+      "url": "http://192.168.1.11:8080/mcp"
     }
   ]
 }
@@ -69,10 +69,10 @@ Server 端使用的配置文件。
 {
   "port": 8080,
   "node_name": "node-01",
-  "peers": [
-    "http://localhost:8081/sse",
-    "http://localhost:8082/sse"
-  ],
+    "peers": [
+      "http://localhost:8081",
+      "http://localhost:8082"
+    ],
   "security": {
     "blacklist": ["rm", "mkfs", "shutdown", "reboot"],
     "dangerous_args_regex": [

@@ -102,11 +102,11 @@ cat > test_cluster_client_config.json << EOF
   "servers": [
     {
       "name": "node-01",
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080/mcp"
     },
     {
       "name": "node-02",
-      "url": "http://localhost:8081"
+      "url": "http://localhost:8081/mcp"
     }
   ]
 }

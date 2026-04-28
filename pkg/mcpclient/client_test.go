@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -89,7 +91,7 @@ func (m *mockLogger) Errorf(template string, args ...interface{}) {}
 func TestConcurrency_Connect(t *testing.T) {
 	config := &configs.ClientConfig{
 		Servers: []configs.ServerConfig{
-			{Name: "test", URL: "http://localhost:8080/sse"},
+			{Name: "test", URL: "http://localhost:8080/mcp"},
 		},
 	}
 
@@ -151,7 +153,7 @@ func TestConcurrency_Connect(t *testing.T) {
 func TestConcurrency_CloseAndConnect(t *testing.T) {
 	config := &configs.ClientConfig{
 		Servers: []configs.ServerConfig{
-			{Name: "test", URL: "http://localhost:8080/sse"},
+			{Name: "test", URL: "http://localhost:8080/mcp"},
 		},
 	}
 
@@ -193,7 +195,7 @@ func TestConcurrency_CloseAndConnect(t *testing.T) {
 func TestHeartbeatLifecycle(t *testing.T) {
 	config := &configs.ClientConfig{
 		Servers: []configs.ServerConfig{
-			{Name: "test", URL: "http://localhost:8080/sse"},
+			{Name: "test", URL: "http://localhost:8080/mcp"},
 		},
 	}
 
@@ -206,6 +208,42 @@ func TestHeartbeatLifecycle(t *testing.T) {
 		_ = client.Connect(context.Background())
 		_ = client.Close()
 	}
+}
+
+func TestTransportHTTPClientInjectsHeaders(t *testing.T) {
+	client, err := NewClient(&configs.ClientConfig{
+		Servers: []configs.ServerConfig{{Name: "test", URL: "http://localhost:8080/mcp"}},
+	}, WithHeader("X-Cluster-Token", "token-123"))
+	if err != nil {
+		t.Fatalf("创建客户端失败: %v", err)
+	}
+
+	baseTransport := &mockRoundTripper{
+		roundTripFunc: func(req *http.Request) (*http.Response, error) {
+			if got := req.Header.Get("X-Cluster-Token"); got != "token-123" {
+				t.Fatalf("请求头未注入，实际值: %q", got)
+			}
+
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader("ok")),
+				Header:     make(http.Header),
+			}, nil
+		},
+	}
+
+	client.httpClient = &http.Client{Transport: baseTransport}
+	transportClient := client.transportHTTPClient()
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8080/mcp", nil)
+	if err != nil {
+		t.Fatalf("创建请求失败: %v", err)
+	}
+
+	resp, err := transportClient.Do(req)
+	if err != nil {
+		t.Fatalf("发送请求失败: %v", err)
+	}
+	_ = resp.Body.Close()
 }
 
 // TestClientConfigValidation 测试客户端配置验证
@@ -229,7 +267,7 @@ func TestClientConfigValidation(t *testing.T) {
 			name: "有效配置",
 			config: &configs.ClientConfig{
 				Servers: []configs.ServerConfig{
-					{Name: "test", URL: "http://localhost:8080"},
+					{Name: "test", URL: "http://localhost:8080/mcp"},
 				},
 			},
 			expectError: false,
@@ -238,7 +276,7 @@ func TestClientConfigValidation(t *testing.T) {
 			name: "服务器名称为空",
 			config: &configs.ClientConfig{
 				Servers: []configs.ServerConfig{
-					{Name: "", URL: "http://localhost:8080"},
+					{Name: "", URL: "http://localhost:8080/mcp"},
 				},
 			},
 			expectError: true,
@@ -248,6 +286,15 @@ func TestClientConfigValidation(t *testing.T) {
 			config: &configs.ClientConfig{
 				Servers: []configs.ServerConfig{
 					{Name: "test", URL: ""},
+				},
+			},
+			expectError: true,
+		},
+		{
+			name: "服务器 URL 不是 /mcp endpoint",
+			config: &configs.ClientConfig{
+				Servers: []configs.ServerConfig{
+					{Name: "test", URL: "http://localhost:8080"},
 				},
 			},
 			expectError: true,

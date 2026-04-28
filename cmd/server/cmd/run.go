@@ -108,8 +108,8 @@ func runServer() {
 	registerTools(mcpServer, guard, executor, dispatcher, cfg)
 	logger.Infof("MCP Tools 注册成功")
 
-	// 5. 创建 HTTP Handler (支持 SSE)
-	// 使用 StreamableHTTPHandler 来同时支持 SSE 和 JSON 请求
+	// 5. 创建 HTTP Handler (Streamable HTTP)
+	// 使用 StreamableHTTPHandler 提供 MCP Streamable HTTP endpoint
 	logger.Debugf("创建 StreamableHTTPHandler，session_timeout=10m, stateless=false")
 	mcpHandler := mcp.NewStreamableHTTPHandler(func(r *http.Request) *mcp.Server {
 		return mcpServer
@@ -122,11 +122,11 @@ func runServer() {
 	// 6. 注册内部 API 端点
 	// 我们需要将内部 API 挂载到同一个 http.ServeMux 上
 	// 但 mcpHandler 本身是一个 http.Handler
-	// 我们可以使用 http.NewServeMux 并将 MCP handler 挂载到根路径，内部 API 挂载到 /internal
+	// 我们使用 http.NewServeMux 并将 MCP handler 挂载到 /mcp，内部 API 挂载到 /internal
 	logger.Debugf("创建 HTTP ServeMux 并注册路由")
 	mux := http.NewServeMux()
-	mux.Handle("/", mcpHandler)
-	logger.Debugf("注册 MCP handler 到根路径 /")
+	mux.Handle("/mcp", mcpHandler)
+	logger.Debugf("注册 MCP handler 到 /mcp")
 
 	// 包装内部 API Handler 以确保它们可以被访问
 	mux.HandleFunc("/internal/exec", internalExecHandler(guard, executor))
@@ -140,7 +140,7 @@ func runServer() {
 	addr := ":" + strconv.Itoa(cfg.Port)
 	logger.Infof("========================================")
 	logger.Infof("Server listening on %s", addr)
-	logger.Infof("MCP endpoint: http://localhost%s", addr)
+	logger.Infof("MCP endpoint: http://localhost%s/mcp", addr)
 	logger.Infof("Internal API endpoints: http://localhost%s/internal/...", addr)
 	logger.Infof("========================================")
 	logger.Infof("服务器启动完成，等待请求...")

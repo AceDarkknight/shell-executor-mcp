@@ -36,7 +36,7 @@ logCfg := cfg.Log.ToLoggerConfig()
   "servers": [
     {
       "name": "local-node",
-      "url": "http://127.0.0.1:8090"
+      "url": "http://127.0.0.1:8090/mcp"
     }
   ],
   "log": {

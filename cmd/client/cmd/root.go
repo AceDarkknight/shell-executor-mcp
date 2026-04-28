@@ -43,7 +43,7 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().StringP("server", "s", "", "Server address")
+	rootCmd.Flags().StringP("server", "s", "", "Complete MCP endpoint URL, e.g. http://localhost:8080/mcp")
 	rootCmd.Flags().String("token", "", "Connection token")
 	rootCmd.Flags().Bool("insecure-skip-verify", false, "Skip TLS verification")
 	rootCmd.Flags().String("log-dir", "", "Log directory")

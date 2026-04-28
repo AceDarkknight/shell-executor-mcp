@@ -16,7 +16,7 @@ Server 端是 Shell Executor MCP 系统的服务器程序，负责接收 Client 
 
 1. **MCP 协议支持**
    - 基于 `github.com/modelcontextprotocol/go-sdk` 实现 MCP Server 标准接口
-   - 通过 HTTP SSE (Server-Sent Events) 暴露服务
+   - 通过 MCP Streamable HTTP 在 `/mcp` 暴露服务
    - 注册 `execute_command` 工具供 Client 调用
 
 2. **命令执行**

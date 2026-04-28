@@ -81,7 +81,7 @@ cfg := &configs.ClientConfig{
     Servers: []configs.ServerConfig{
         {
             Name: "local-server",
-            URL:  "http://127.0.0.1:8090",
+            URL:  "http://127.0.0.1:8090/mcp",
         },
     },
     Log: configs.LogConfig{
@@ -105,7 +105,7 @@ import (
 client, err := mcpclient.NewClient(cfg,
     mcpclient.WithTimeout(60*time.Second),  // 设置超时
     mcpclient.WithHeader("X-Custom-Header", "value"),  // 添加请求头
-    mcpclient.WithServerURL("http://custom-server:8090"),  // 覆盖服务器地址
+    mcpclient.WithServerURL("http://custom-server:8090/mcp"),  // 覆盖完整 MCP endpoint
 )
 ```
 
@@ -210,7 +210,7 @@ func NewClient(cfg *configs.ClientConfig, opts ...Option) (*Client, error)
 - `WithHTTPClient(client *http.Client) Option` - 设置自定义 HTTP 客户端
 - `WithHeaders(headers map[string]string) Option` - 设置请求头
 - `WithHeader(key, value string) Option` - 添加单个请求头
-- `WithServerURL(url string) Option` - 覆盖服务器地址
+- `WithServerURL(url string) Option` - 覆盖完整 MCP endpoint URL
 
 ### 配置加载
 
@@ -236,7 +236,7 @@ func LoadClientConfig(path string) (*configs.ClientConfig, error)
   "servers": [
     {
       "name": "local-node",
-      "url": "http://127.0.0.1:8090"
+      "url": "http://127.0.0.1:8090/mcp"
     }
   ],
   "log": {
@@ -252,7 +252,7 @@ func LoadClientConfig(path string) (*configs.ClientConfig, error)
 
 ## 注意事项
 
-1. **配置验证**：`NewClient` 会验证配置参数，确保服务器列表不为空且每个服务器配置有效。
+1. **配置验证**：`NewClient` 会验证配置参数，确保服务器列表不为空，且每个服务器地址都是完整的 MCP endpoint URL（必须以 `/mcp` 结尾）。
 2. **连接管理**：使用 `Connect()` 连接后，记得调用 `Close()` 关闭连接，或者使用 `defer` 确保资源释放。
 3. **上下文使用**：建议使用 `context.Background()` 或带有超时的 `context.WithTimeout()`。
 4. **错误处理**：所有方法都可能返回错误，建议进行适当的错误处理。

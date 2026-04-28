@@ -34,6 +34,14 @@
   - 配置管理优化
   - 命令行参数设计
 
+### 协议迁移
+
+- [`2026-04-27-streamable-http-refactor-plan.md`](2026-04-27-streamable-http-refactor-plan.md) - 统一迁移到 MCP Streamable HTTP
+  - 服务端路由收敛到 `/mcp`
+  - 客户端配置规范统一（完整 endpoint URL）
+  - 移除 `/sse` 和裸地址旧接入方式
+  - 文档、配置、测试全量同步更新
+
 ## 计划文档格式
 
 每个计划文档应包含以下内容：

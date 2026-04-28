@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +34,22 @@ type Client struct {
 	connectChan  chan struct{} // 用于连接控制
 }
 
+type headerRoundTripper struct {
+	base    http.RoundTripper
+	headers map[string]string
+}
+
+func (h *headerRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	clonedReq := req.Clone(req.Context())
+	clonedReq.Header = req.Header.Clone()
+
+	for key, value := range h.headers {
+		clonedReq.Header.Set(key, value)
+	}
+
+	return h.base.RoundTrip(clonedReq)
+}
+
 // NewClient 创建一个新的 MCP 客户端
 // cfg: 客户端配置（必需），如果为 nil 或无效，将返回错误
 // opts: 可选配置参数
@@ -53,6 +70,9 @@ func NewClient(cfg *configs.ClientConfig, opts ...Option) (*Client, error) {
 		}
 		if server.URL == "" {
 			return nil, fmt.Errorf("服务器 [%d] 的地址不能为空", i)
+		}
+		if err := validateEndpointURL(server.URL); err != nil {
+			return nil, fmt.Errorf("服务器 [%d] 的地址无效: %w", i, err)
 		}
 	}
 
@@ -109,6 +129,10 @@ func (c *Client) Connect(ctx context.Context) error {
 	}
 	c.mu.Unlock()
 
+	if err := validateEndpointURL(serverURL); err != nil {
+		return fmt.Errorf("服务器地址无效: %w", err)
+	}
+
 	c.logger.Debugf("连接到服务器: %s", serverURL)
 
 	// 创建 MCP Client
@@ -117,10 +141,10 @@ func (c *Client) Connect(ctx context.Context) error {
 		Version: "1.0.0",
 	}, nil)
 
-	// 创建 StreamableClientTransport 用于 SSE 连接
+	// 创建 StreamableClientTransport 用于 Streamable HTTP 连接
 	transport := &mcp.StreamableClientTransport{
 		Endpoint:   serverURL,
-		HTTPClient: c.httpClient,
+		HTTPClient: c.transportHTTPClient(),
 	}
 
 	session, err := newClient.Connect(ctx, transport, nil)
@@ -358,4 +382,58 @@ func (c *Client) sendHeartbeat() {
 	} else {
 		c.logger.Debugf("心跳请求成功")
 	}
+}
+
+func (c *Client) transportHTTPClient() *http.Client {
+	baseClient := c.httpClient
+	if baseClient == nil {
+		baseClient = &http.Client{}
+	}
+
+	clonedClient := *baseClient
+	if clonedClient.Timeout == 0 {
+		clonedClient.Timeout = c.timeout
+	}
+
+	if len(c.headers) == 0 {
+		return &clonedClient
+	}
+
+	baseTransport := clonedClient.Transport
+	if baseTransport == nil {
+		baseTransport = http.DefaultTransport
+	}
+
+	headers := make(map[string]string, len(c.headers))
+	for key, value := range c.headers {
+		headers[key] = value
+	}
+
+	clonedClient.Transport = &headerRoundTripper{
+		base:    baseTransport,
+		headers: headers,
+	}
+
+	return &clonedClient
+}
+
+func validateEndpointURL(rawURL string) error {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("URL 解析失败: %w", err)
+	}
+
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("URL 必须使用 http 或 https 协议: %s", rawURL)
+	}
+
+	if parsedURL.Host == "" {
+		return fmt.Errorf("URL 缺少主机地址: %s", rawURL)
+	}
+
+	if parsedURL.Path != "/mcp" {
+		return fmt.Errorf("URL 必须是完整的 MCP endpoint，并以 /mcp 结尾: %s", rawURL)
+	}
+
+	return nil
 }

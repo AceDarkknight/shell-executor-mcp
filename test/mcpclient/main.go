@@ -13,7 +13,7 @@ import (
 	"github.com/AceDarkknight/shell-executor-mcp/internal/logger"
 )
 
-// 本示例演示如何使用 mcpclient 包
+// 本示例演示如何使用 mcpclient 包连接完整的 MCP endpoint（/mcp）
 func main() {
 	// 1. 加载配置
 	cfg, err := configs.LoadClientConfig("../client_config.json")

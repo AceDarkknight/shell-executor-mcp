@@ -12,7 +12,7 @@ graph TD
         NodeC[Server Node C]
     end
     
-    Client -- "MCP over HTTP (SSE)" --> NodeA
+    Client -- "MCP Streamable HTTP (/mcp)" --> NodeA
     
     NodeA -- "Forward Request" --> NodeB
     NodeA -- "Forward Request" --> NodeC
@@ -114,7 +114,7 @@ logger.Info("Server started", zap.String("role", "server"))
 - **无主架构**: 集群中不存在固定的 Master/Leader。
 - **角色动态分配**: 任何接收到 Client 直接请求的 Server 节点，自动承担 **Coordinator** 角色。其他被 Coordinator 调用的节点承担 **Worker** 角色。
 - **通信协议**: 
-  - **Client -> Server**: MCP over HTTP (SSE)。
+  - **Client -> Server**: MCP Streamable HTTP（`/mcp`）。
   - **Server -> Server**: Internal HTTP JSON API。
 
 ### 3.2 Server 间通信协议 (Internal Communication)
@@ -137,7 +137,7 @@ sequenceDiagram
     participant ServerA as Server A (Coordinator)
     participant ServerB as Server B (Worker)
 
-    note left of Client: Protocol: MCP over SSE
+    note left of Client: Protocol: MCP Streamable HTTP (/mcp)
     User->>Client: "uptime"
     Client->>ServerA: MCP CallTool("execute_command", "uptime")
 

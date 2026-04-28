@@ -74,7 +74,7 @@ cat > test_client_config.json << EOF
   "servers": [
     {
       "name": "test-server",
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080/mcp"
     }
   ]
 }

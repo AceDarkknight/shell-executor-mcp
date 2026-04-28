@@ -17,7 +17,7 @@ type ClientConfig struct {
 // ServerConfig 定义服务器的配置结构
 type ServerConfig struct {
 	Name string `json:"name"` // 服务器名称
-	URL  string `json:"url"`  // 服务器地址
+	URL  string `json:"url"`  // 完整 MCP endpoint URL，必须以 /mcp 结尾
 }
 
 // LogConfig 定义日志相关的配置

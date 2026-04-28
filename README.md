@@ -115,11 +115,11 @@ cd ../..
   "servers": [
     {
       "name": "primary-01",
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080/mcp"
     },
     {
       "name": "backup-02",
-      "url": "http://localhost:8081"
+      "url": "http://localhost:8081/mcp"
     }
   ],
   "log": {
@@ -221,7 +221,7 @@ bash scripts/test_cluster.sh
 
 ### 通信协议
 
-- **Client → Server**：MCP over HTTP (SSE)
+- **Client → Server**：MCP Streamable HTTP (`/mcp`)
 - **Server → Server**：Internal HTTP JSON API
 
 ### 核心流程
@@ -254,7 +254,7 @@ bash scripts/test_cluster.sh
 - **MCP SDK**：`github.com/modelcontextprotocol/go-sdk v1.2.0`
 - **日志库**：`go.uber.org/zap v1.27.1`（结构化日志）
 - **日志轮转**：`gopkg.in/natefinch/lumberjack.v2 v2.2.1`（日志文件轮转）
-- **传输协议**：HTTP SSE (Server-Sent Events)
+- **传输协议**：MCP Streamable HTTP
 
 ## 许可证
 

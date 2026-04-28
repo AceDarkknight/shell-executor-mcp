@@ -40,10 +40,10 @@ Client 端是 Shell Executor MCP 系统的客户端程序，负责接收用户�
 ./client client_config.json
 
 # 使用命令行参数启动
-./client --server http://localhost:8080
+./client --server http://localhost:8080/mcp
 
 # 使用环境变量启动
-export MCP_SERVER=http://localhost:8080
+export MCP_SERVER=http://localhost:8080/mcp
 ./client
 ```
 
@@ -56,11 +56,11 @@ export MCP_SERVER=http://localhost:8080
   "servers": [
     {
       "name": "primary-01",
-      "url": "http://localhost:8080"
+      "url": "http://localhost:8080/mcp"
     },
     {
       "name": "backup-02",
-      "url": "http://localhost:8081"
+      "url": "http://localhost:8081/mcp"
     }
   ],
   "log": {

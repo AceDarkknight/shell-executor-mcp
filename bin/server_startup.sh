@@ -115,7 +115,6 @@ echo "使用节点名称: $NODE_NAME"
 # 3. 生成随机 Cluster Token (32位字母数字组合)
 # 使用 cat /dev/urandom 和 tr 这种最通用的组合，避开 openssl 和复杂的 sed
 CLUSTER_TOKEN=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
-echo "生成的集群令牌: $CLUSTER_TOKEN"
 
 # 4. 启动 Server
 CONFIG_FILE="$PROJECT_ROOT/server.json"
@@ -145,7 +144,7 @@ if [ -f "$CONFIG_FILE" ]; then
     # 使用 | 作为分隔符，避免与变量中的 / 冲突
     sed -i "s|NODE_NAME_PLACEHOLDER|$NODE_NAME|g" "$CONFIG_FILE"
     sed -i "s|CLUSTER_TOKEN_PLACEHOLDER|$CLUSTER_TOKEN|g" "$CONFIG_FILE"
-    echo "配置文件更新完成"
+    echo "配置文件更新完成，集群令牌: $CLUSTER_TOKEN"
 fi
 
 echo "正在启动 Shell Executor MCP Server..."
